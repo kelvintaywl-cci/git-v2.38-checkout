@@ -1,0 +1,26 @@
+version: 2.1
+
+jobs:
+  clone:
+    parameters:
+      img:
+        description: Docker image for execution environment
+        type: string
+    docker:
+      - image: << parameters.img >>
+    resource_class: small
+    steps:
+      - run: |
+          git -v
+          ssh -V
+      - checkout
+
+workflows:
+  investigate:
+    jobs:
+      - clone:
+          matrix:
+            parameters:
+              img:
+                - cimg/go:1.19
+                - cimg/python:3.9
