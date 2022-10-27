@@ -13,6 +13,7 @@ jobs:
       - run: |
           git -v
           ssh -V
+          openssl version
       - checkout
 
 workflows:
