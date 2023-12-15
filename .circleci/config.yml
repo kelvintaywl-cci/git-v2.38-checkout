@@ -95,7 +95,8 @@ jobs:
       - run: |
           git -v
           ssh -V
-      - checkout
+      - custom-checkout
+      - run: ls -lah /home/circleci/project/
 
 workflows:
   investigate:
