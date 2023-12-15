@@ -1,5 +1,87 @@
 version: 2.1
 
+commands:
+  custom-checkout:
+    parameters:
+      ssh-port:
+        type: integer
+        default: 22
+    steps:
+      - run:
+          name: Checkout code
+          command: |
+            #!/bin/sh
+            set -e
+            # Workaround old docker images with incorrect $HOME
+            # check https://github.com/docker/docker/issues/2968 for details
+            if [ "${HOME}" = "/" ]
+            then
+              export HOME=$(getent passwd $(id -un) | cut -d: -f6)
+            fi
+            
+            echo "Using SSH Config Dir '$SSH_CONFIG_DIR'"
+            git --version 
+            
+            mkdir -p "$SSH_CONFIG_DIR"
+            chmod 0700 "$SSH_CONFIG_DIR"
+            
+            printf "%s" 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+            github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+            github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+            bitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=
+            bitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO
+            bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=
+            gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=
+            ' >> "$SSH_CONFIG_DIR/known_hosts"
+            chmod 0600 "$SSH_CONFIG_DIR/known_hosts"
+            
+            rm -f "$SSH_CONFIG_DIR/id_rsa"
+            printf "%s" "$CHECKOUT_KEY" > "$SSH_CONFIG_DIR/id_rsa"
+            chmod 0600 "$SSH_CONFIG_DIR/id_rsa"
+            if (: "${CHECKOUT_KEY_PUBLIC?}") 2>/dev/null; then
+              rm -f "$SSH_CONFIG_DIR/id_rsa.pub"
+              printf "%s" "$CHECKOUT_KEY_PUBLIC" > "$SSH_CONFIG_DIR/id_rsa.pub"
+            fi
+            
+            export GIT_SSH_COMMAND='ssh -i "$SSH_CONFIG_DIR/id_rsa" -o UserKnownHostsFile="$SSH_CONFIG_DIR/known_hosts" -o Port=<< parameters.ssh-port >>'
+            
+            # use git+ssh instead of https
+            git config --global url."ssh://git@github.com".insteadOf "https://github.com" || true
+            git config --global gc.auto 0 || true
+            
+            if [ -e '/home/circleci/project/.git' ] ; then
+              echo 'Fetching into existing repository'
+              existing_repo='true'
+              cd '/home/circleci/project'
+              git remote set-url origin "$CIRCLE_REPOSITORY_URL" || true
+            else
+              echo 'Cloning git repository'
+              existing_repo='false'
+              mkdir -p '/home/circleci/project'
+              cd '/home/circleci/project'
+              git clone --no-checkout "$CIRCLE_REPOSITORY_URL" .
+            fi
+            
+            if [ "$existing_repo" = 'true' ] || [ 'false' = 'true' ]; then
+              echo 'Fetching from remote repository'
+              if [ -n "$CIRCLE_TAG" ]; then
+                git fetch --force --tags origin
+              else
+                git fetch --force origin +refs/heads/main:refs/remotes/origin/main
+              fi
+            fi
+            
+            if [ -n "$CIRCLE_TAG" ]; then
+              echo 'Checking out tag'
+              git checkout --force "$CIRCLE_TAG"
+              git reset --hard "$CIRCLE_SHA1"
+            else
+              echo 'Checking out branch'
+              git checkout --force -B "$CIRCLE_BRANCH" "$CIRCLE_SHA1"
+              git --no-pager log --no-color -n 1 --format='HEAD is now at %h %s'
+            fi
+      
+
 jobs:
   clone:
     parameters:
@@ -9,8 +91,6 @@ jobs:
     docker:
       - image: << parameters.img >>
     resource_class: small
-    environment:
-      GIT_SSH_COMMAND: "ssh -vv -oPort=1234"
     steps:
       - run: |
           git -v
@@ -25,4 +105,4 @@ workflows:
             parameters:
               img:
                 - cimg/go:1.19
-                - cimg/python:3.9
+                # - cimg/python:3.9
