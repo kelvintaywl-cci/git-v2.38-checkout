@@ -90,6 +90,9 @@ jobs:
       img:
         description: Docker image for execution environment
         type: string
+      ssh-port:
+        type: integer
+        default: 22
     docker:
       - image: << parameters.img >>
     resource_class: small
@@ -97,7 +100,8 @@ jobs:
       - run: |
           git -v
           ssh -V
-      - custom-checkout
+      - custom-checkout:
+          ssh-port: << parameters.ssh-port >>
       - run: ls -lah /home/circleci/project/
 
 workflows:
