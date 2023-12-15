@@ -106,6 +106,10 @@ workflows:
       - clone:
           matrix:
             parameters:
+              ssh-port:
+                - 22
+                # should fail in this case
+                - 1234
               img:
                 - cimg/go:1.19
                 # - cimg/python:3.9
