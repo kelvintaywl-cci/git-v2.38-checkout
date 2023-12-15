@@ -18,6 +18,8 @@ commands:
             then
               export HOME=$(getent passwd $(id -un) | cut -d: -f6)
             fi
+
+            export SSH_CONFIG_DIR=${SSH_CONFIG_DIR:-"${HOME}/.ssh"}
             
             echo "Using SSH Config Dir '$SSH_CONFIG_DIR'"
             git --version 
