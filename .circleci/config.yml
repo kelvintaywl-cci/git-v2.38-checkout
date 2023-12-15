@@ -9,6 +9,8 @@ jobs:
     docker:
       - image: << parameters.img >>
     resource_class: small
+    # environment:
+    #   GIT_SSH_COMMAND: "ssh -oPort=1234"
     steps:
       - run: |
           git -v
