@@ -7,5 +7,5 @@ jobs:
     resource_class: small
     steps:
       - checkout
-      - run: echo foo
+      - run: sleep 60
       - run: git fetch origin
